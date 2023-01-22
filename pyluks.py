@@ -2,9 +2,46 @@
 
 import argparse
 
+def createByteString(string, length):
+    result = string.encode('ascii')
+    result += b'\0' * (length - len(string))
+    return result
+
+def createByteInt(value):
+    return value.to_bytes(4, 'big')
+
+
+def getUUID():
+    return "3dbc5803-20e4-4d8a-ace3-a034fa0d4a6"
+
+
+def createHeader():
+    magic = b"LUKS" + bytes.fromhex("BABE")
+    version = bytes.fromhex("0001")
+    chipher_name = createByteString("aes", 32)
+    chipher_mode = createByteString("xts-plain64", 32)
+    hash_spec = createByteString("sha256", 32)
+    payload_offset = createByteInt(4096)
+    key_bytes = createByteInt(64)
+    mk_digest = b'd' * 20
+    mk_digest_salt = b's' * 32
+    mk_digest_iter = createByteInt(128754)
+    uuid = createByteString(getUUID(), 40)
+    key_slot_0 = b'k' * 48
+    key_slot_other = b'\0' * 48 * 7
+
+    header = magic + version + chipher_name + chipher_mode + hash_spec + payload_offset + key_bytes + mk_digest + mk_digest_salt + mk_digest_iter + uuid + key_slot_0 + key_slot_other
+
+    return header
+
 parser = argparse.ArgumentParser(
     prog = 'PyLuks',
     description = 'Create a Luks filesystem image from python')
+parser.add_argument('file', type = argparse.FileType('wb'))
 
 args = parser.parse_args()
 
+header = createHeader()
+f = args.file
+f.write(header)
+f.close()
