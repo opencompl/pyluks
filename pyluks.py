@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 
 def createByteString(string, length):
     result = string.encode('ascii')
@@ -15,6 +16,15 @@ def getUUID():
     return "3dbc5803-20e4-4d8a-ace3-a034fa0d4a6"
 
 
+def getmasterkey():
+    iterations = 16
+    salt = b'\0' * 32
+    key = ""
+    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 20)
+
+    return (keyhash, salt, iterations)
+
+
 def createHeader():
     magic = b"LUKS" + bytes.fromhex("BABE")
     version = bytes.fromhex("0001")
@@ -23,9 +33,8 @@ def createHeader():
     hash_spec = createByteString("sha256", 32)
     payload_offset = createByteInt(4096)
     key_bytes = createByteInt(64)
-    mk_digest = b'd' * 20
-    mk_digest_salt = b's' * 32
-    mk_digest_iter = createByteInt(128754)
+    mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
+    mk_digest_iter = createByteInt(mk_iterations)
     uuid = createByteString(getUUID(), 40)
     key_slot_0 = b'k' * 48
     key_slot_other = b'\0' * 48 * 7
