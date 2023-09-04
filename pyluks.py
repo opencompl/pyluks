@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import cryptography
 
 def createByteString(string, length):
     result = string.encode('ascii')
@@ -24,6 +25,54 @@ def getmasterkey():
 
     return (keyhash, salt, iterations)
 
+def xorbytes(var, key):
+    return bytes(a ^ b for a, b in zip(var, key))
+
+def hashval(val):
+    width = 20
+    rounds = math.ceil((len(val)/width))
+
+    result = bytes()
+    for i in range(rounds):
+        data = val[i*width:(i+1)*width]
+        iterator = createByteInt(i+1) + data
+        hashedData = hashlib.sha1(data).hexdigest().encode('ascii')
+        hashedData = hashedData[0:len(data)]
+        result += hashedData
+
+    return result
+
+import random, math
+
+def afSplitter(unsplitMaterial, stripes):
+    length = len(unsplitMaterial)
+
+    d = b'\0' * length
+    s = b''
+
+    for stripe in range(stripes-1):
+        s_k = random.randbytes(length)
+        d = xorbytes(d, s_k)
+        d = hashval(d)
+        s += s_k
+
+    s += xorbytes(d, unsplitMaterial)
+
+    return s
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import os
+
+def getSlotKey(stripes, iterations, salt):
+    key_bytes = 64
+    split = afSplitter(b'\0' * key_bytes, stripes)
+    key = ""
+    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 32)
+    print(len(keyhash))
+    cipher = Cipher(algorithms.AES(keyhash), modes.XTS)
+    encryptor = cipher.encryptor()
+    ct = encryptor.update(split) + encryptor.finalize()
+    return ct
 
 def createHeader():
     magic = b"LUKS" + bytes.fromhex("BABE")
@@ -72,7 +121,9 @@ def createHeader():
         status = disabled
         offset +=  keyMaterialSectors
 
-    header += b'\0' * 16776624
+    header += b'\0' * (4096 - len(header))
+    header += getSlotKey(stripes, iterations, salt)
+    header += b'\0' * (16777216 - len(header))
     return header
 
 parser = argparse.ArgumentParser(
@@ -86,3 +137,4 @@ header = createHeader()
 f = args.file
 f.write(header)
 f.close()
+
