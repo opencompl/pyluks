@@ -6,5 +6,6 @@ echo "222c7552fa1c58072585ca625befcabb530606336dc9407550a43e98d503d58f2320b86f7e
 echo "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" > masterkey.txt
 xxd -r -p masterkey.txt masterkey.bin
 
-sudo cryptsetup luksFormat --type luks1 --key-file passphrase.txt --batch-mode --cipher cipher_null --master-key-file masterkey.bin test.img
+#sudo cryptsetup luksFormat --type luks1 --key-file passphrase.txt --batch-mode --cipher cipher_null --master-key-file masterkey.bin test.img
+sudo cryptsetup luksFormat --type luks1 --key-file passphrase.txt --batch-mode --master-key-file masterkey.bin test.img
 

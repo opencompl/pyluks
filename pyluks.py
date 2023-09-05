@@ -29,6 +29,8 @@ def getmasterkey():
     key = bytes.fromhex(
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             )
     keyhash = hashlib.pbkdf2_hmac("sha256", key, salt, iterations, 20)
 
@@ -44,9 +46,11 @@ def hashval(val):
     result = bytes()
     for i in range(rounds):
         data = val[i*width:(i+1)*width]
-        iterator = createByteInt(i)
-        data = iterator + data
+        iterator = i.to_bytes(8, "little")
+        #data = iterator + data
+    #    print(len(data))
         hashedData = bytes.fromhex(hashlib.sha256(data).hexdigest())
+        print(hashlib.sha256(data).digest_size)
         hashedData = hashedData[0:len(data)]
         result += hashedData
 
@@ -64,6 +68,7 @@ def afSplitter(unsplitMaterial, stripes):
         s_k = b'\0' * length #random.randbytes(length)
         d = xorbytes(d, s_k)
         d = hashval(d)
+        assert len(d) == 64
         s += s_k
 
     s += xorbytes(d, unsplitMaterial)
@@ -74,27 +79,34 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import os
 
 def getSlotKey(mk, stripes, iterations, salt):
-    key_bytes = 32
     split = afSplitter(mk, stripes)
     key = ""
-    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 32)
-    iv = (8).to_bytes(16, 'big')
+    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
+    iv = (8).to_bytes(8, 'little') + b'\0'* 8
+
+    print(iv)
+
+   
+    blocks = len(split)
+    print(len(mk))
+    print(len(mk))
+    print(blocks)
     cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
     encryptor = cipher.encryptor()
     ct = encryptor.update(split) + encryptor.finalize()
-    return split
+    return ct
 
 def createHeader():
     magic = b"LUKS" + bytes.fromhex("BABE")
     version = bytes.fromhex("0001")
-    #chipher_name = createByteString("aes", 32)
-    chipher_name = createByteString("cipher_null", 32)
-    #chipher_mode = createByteString("xts-plain64", 32)
-    chipher_mode = createByteString("ecb", 32)
+    chipher_name = createByteString("aes", 32)
+    #chipher_name = createByteString("cipher_null", 32)
+    chipher_mode = createByteString("xts-plain64", 32)
+    #chipher_mode = createByteString("ecb", 32)
     hash_spec = createByteString("sha256", 32)
     payload_offset = createByteInt(4096)
-    #key_bytes = createByteInt(64)
-    key_bytes = createByteInt(32)
+    key_bytes = createByteInt(64)
+    #key_bytes = createByteInt(32)
     mk, mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
     mk_digest_iter = createByteInt(mk_iterations)
     uuid = createByteString(getUUID(), 40)
@@ -110,7 +122,8 @@ def createHeader():
 
     offset =  size_of_phdr // luks_sector_size + 1
     offset =  8
-    stripes = 4000
+    #stripes = 4000
+    stripes = 1
     keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
     keyMaterialSectors = 504
 
