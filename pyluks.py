@@ -20,23 +20,33 @@ def getUUID():
 def getmasterkey():
     iterations = 128754
     salt = bytes.fromhex("1924e8299633c0e0f2eb700d046f4836e3d644f7ad8836e7c5a73f05f88960b1")
-    key = ""
-    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 20)
+    key = bytes.fromhex(
+            "22 2c 75 52 fa 1c 58 07 25 85 ca 62 5b ef ca bb"
+            "53 06 06 33 6d c9 40 75 50 a4 3e 98 d5 03 d5 8f"
+            "23 20 b8 6f 7e e4 7d 1f 74 79 e6 4a 45 7e 14 98"
+            "5d d3 3d 3b 05 3e 32 e0 c8 44 3b 38 5c d1 86 28"
+            )
+    key = bytes.fromhex(
+            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+            )
+    keyhash = hashlib.pbkdf2_hmac("sha256", key, salt, iterations, 20)
 
-    return (keyhash, salt, iterations)
+    return (key, keyhash, salt, iterations)
 
 def xorbytes(var, key):
     return bytes(a ^ b for a, b in zip(var, key))
 
 def hashval(val):
-    width = 20
+    width = 32
     rounds = math.ceil((len(val)/width))
 
     result = bytes()
     for i in range(rounds):
         data = val[i*width:(i+1)*width]
-        iterator = createByteInt(i+1) + data
-        hashedData = hashlib.sha1(data).hexdigest().encode('ascii')
+        iterator = createByteInt(i)
+        data = iterator + data
+        hashedData = bytes.fromhex(hashlib.sha256(data).hexdigest())
         hashedData = hashedData[0:len(data)]
         result += hashedData
 
@@ -51,7 +61,7 @@ def afSplitter(unsplitMaterial, stripes):
     s = b''
 
     for stripe in range(stripes-1):
-        s_k = random.randbytes(length)
+        s_k = b'\0' * length #random.randbytes(length)
         d = xorbytes(d, s_k)
         d = hashval(d)
         s += s_k
@@ -63,26 +73,29 @@ def afSplitter(unsplitMaterial, stripes):
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import os
 
-def getSlotKey(stripes, iterations, salt):
-    key_bytes = 64
-    split = afSplitter(b'\0' * key_bytes, stripes)
+def getSlotKey(mk, stripes, iterations, salt):
+    key_bytes = 32
+    split = afSplitter(mk, stripes)
     key = ""
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 32)
-    print(len(keyhash))
-    cipher = Cipher(algorithms.AES(keyhash), modes.XTS)
+    iv = (8).to_bytes(16, 'big')
+    cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
     encryptor = cipher.encryptor()
     ct = encryptor.update(split) + encryptor.finalize()
-    return ct
+    return split
 
 def createHeader():
     magic = b"LUKS" + bytes.fromhex("BABE")
     version = bytes.fromhex("0001")
-    chipher_name = createByteString("aes", 32)
-    chipher_mode = createByteString("xts-plain64", 32)
+    #chipher_name = createByteString("aes", 32)
+    chipher_name = createByteString("cipher_null", 32)
+    #chipher_mode = createByteString("xts-plain64", 32)
+    chipher_mode = createByteString("ecb", 32)
     hash_spec = createByteString("sha256", 32)
     payload_offset = createByteInt(4096)
-    key_bytes = createByteInt(64)
-    mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
+    #key_bytes = createByteInt(64)
+    key_bytes = createByteInt(32)
+    mk, mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
     mk_digest_iter = createByteInt(mk_iterations)
     uuid = createByteString(getUUID(), 40)
 
@@ -122,7 +135,9 @@ def createHeader():
         offset +=  keyMaterialSectors
 
     header += b'\0' * (4096 - len(header))
-    header += getSlotKey(stripes, iterations, salt)
+
+    slot1 = getSlotKey(mk, stripes, iterations, salt)
+    header += slot1
     header += b'\0' * (16777216 - len(header))
     return header
 
