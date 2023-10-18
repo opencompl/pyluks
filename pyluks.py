@@ -12,20 +12,12 @@ def createByteString(string, length):
 def createByteInt(value):
     return value.to_bytes(4, 'big')
 
-
 def getUUID():
-    return "3dbc5803-20e4-4d8a-ace3-a034fa0d4a64"
-
+    return "abcdabcd-abcd-abcd-abcd-abcdabcdabcd"
 
 def getmasterkey():
-    iterations = 128754
-    salt = bytes.fromhex("1924e8299633c0e0f2eb700d046f4836e3d644f7ad8836e7c5a73f05f88960b1")
-    key = bytes.fromhex(
-            "22 2c 75 52 fa 1c 58 07 25 85 ca 62 5b ef ca bb"
-            "53 06 06 33 6d c9 40 75 50 a4 3e 98 d5 03 d5 8f"
-            "23 20 b8 6f 7e e4 7d 1f 74 79 e6 4a 45 7e 14 98"
-            "5d d3 3d 3b 05 3e 32 e0 c8 44 3b 38 5c d1 86 28"
-            )
+    iterations = 1000
+    salt = bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101")
     key = bytes.fromhex(
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
@@ -50,7 +42,7 @@ def hashval(val):
         #data = iterator + data
     #    print(len(data))
         hashedData = bytes.fromhex(hashlib.sha256(data).hexdigest())
-        print(hashlib.sha256(data).digest_size)
+        #print(hashlib.sha256(data).digest_size)
         hashedData = hashedData[0:len(data)]
         result += hashedData
 
@@ -84,13 +76,13 @@ def getSlotKey(mk, stripes, iterations, salt):
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
     iv = (8).to_bytes(8, 'little') + b'\0'* 8
 
-    print(iv)
+    #print(iv)
 
    
     blocks = len(split)
-    print(len(mk))
-    print(len(mk))
-    print(blocks)
+    #print(len(mk))
+    #print(len(mk))
+    #print(blocks)
     cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
     encryptor = cipher.encryptor()
     ct = encryptor.update(split) + encryptor.finalize()
@@ -121,16 +113,16 @@ def createHeader():
     luks_sector_size = 512
 
     offset =  size_of_phdr // luks_sector_size + 1
-    offset =  8
-    #stripes = 4000
-    stripes = 1
+    #offset =  8
+    stripes = 4000
+    #stripes = 1
     keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
-    keyMaterialSectors = 504
+    #keyMaterialSectors = 504
 
 
     for key_id in range(8):
         iterations = 2056030
-        salt = bytes.fromhex("e98b34cc2157547c10c4e31d1bdf985555c2bf561488116f38dbd344a47a828f")
+        salt = bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101")
         header += status
         if status == disabled:
             header += b'\0' * 4
