@@ -15,9 +15,12 @@ def createByteInt(value):
 def getUUID():
     return "abcdabcd-abcd-abcd-abcd-abcdabcdabcd"
 
+def getRandom(length):
+    return bytes.fromhex("01") * length
+
 def getmasterkey():
     iterations = 1000
-    salt = bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101")
+    salt = getRandom(32)
     key = bytes.fromhex(
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
@@ -35,24 +38,17 @@ def hashval(val):
     width = 32
     blocks = math.ceil((len(val)/width))
 
-    print("input data")
-    print(val.hex())
     result = bytes()
     for i in range(blocks):
         data = val[i*width:(i+1)*width]
         iterator = i.to_bytes(4, "big")
-    #    print(len(data))
         h = hashlib.sha256()
         h.update(iterator)
         h.update(data)
-        hashedData = bytes.fromhex(h.hexdigest())
-
+        hashedData = h.digest()
         hashedData = hashedData[0:len(data)]
         result += hashedData
 
-    print(result.hex())
-    import sys
-    #sys.exit(0)
     return result
 
 import random, math
@@ -64,17 +60,10 @@ def afSplitter(unsplitMaterial, stripes):
     s = b''
 
     for stripe in range(stripes-1):
-        s_k = b'\0' * length #random.randbytes(length)
-        s_k = bytes.fromhex("01") * length
+        s_k = getRandom(length)
 
-        print("data")
-        print(d.hex())
-        print(s_k.hex())
         d = xorbytes(d, s_k)
         d = hashval(d)
-        print(d.hex())
-        import sys
-        assert len(d) == 64
         s += s_k
 
     s += xorbytes(d, unsplitMaterial)
@@ -86,9 +75,6 @@ import os
 
 def getSlotKey(mk, stripes, iterations, salt):
     split = afSplitter(mk, stripes)
-    #print(len(split))
-    #print(len(split))
-    #print(len(split)/ 500)
     import sys
     key = ""
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
@@ -100,14 +86,10 @@ def getSlotKey(mk, stripes, iterations, salt):
 
    
     blocks = len(split)
-    #print(len(mk))
-    #print(len(mk))
-    #print(blocks)
     ct = bytes()
     for i in range(500):
         src = split[i * 512: (i+1)*512]
         iv = (i).to_bytes(16, 'little')
-        #print(iv)
         cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
         encryptor = cipher.encryptor()
         ct += (encryptor.update(src) + encryptor.finalize())
@@ -117,13 +99,10 @@ def createHeader():
     magic = b"LUKS" + bytes.fromhex("BABE")
     version = bytes.fromhex("0001")
     chipher_name = createByteString("aes", 32)
-    #chipher_name = createByteString("cipher_null", 32)
     chipher_mode = createByteString("xts-plain64", 32)
-    #chipher_mode = createByteString("ecb", 32)
     hash_spec = createByteString("sha256", 32)
     payload_offset = createByteInt(4096)
     key_bytes = createByteInt(64)
-    #key_bytes = createByteInt(32)
     mk, mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
     mk_digest_iter = createByteInt(mk_iterations)
     uuid = createByteString(getUUID(), 40)
@@ -138,7 +117,7 @@ def createHeader():
     luks_sector_size = 512
 
     #offset =  size_of_phdr // luks_sector_size + 1
-    offset =  8
+    offset = 8
     stripes = 4000
     #keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
     keyMaterialSectors = 504
@@ -146,7 +125,7 @@ def createHeader():
 
     for key_id in range(8):
         iterations = 124680
-        salt = bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101")
+        salt = getRandom(32)
         header += status
         if status == disabled:
             header += b'\0' * 4
@@ -170,7 +149,7 @@ def createHeader():
     header += b'\0' * 512 * 4
 
     for id in range(1,8):
-        header += b'\1' * 512 * 500
+        header += getRandom(512 * 500)
         header += b'\0' * 512 * 4
 
     header += b'\0' * (pow(2, 24) - len(header))
