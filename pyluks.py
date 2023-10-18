@@ -4,9 +4,12 @@ import argparse
 import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+def pad(data, length):
+    return data + b'\0' * (length - len(data))
+
 def createByteString(string, length):
     result = string.encode('ascii')
-    result += b'\0' * (length - len(string))
+    result = pad(result, length)
     return result
 
 def createByteInt(value):
@@ -129,16 +132,17 @@ def createHeader():
         if status == enabled:
             header += createByteInt(iterations)
             header += salt
-            status = disabled
         else:
-            header += b'\0' * 4
+            header += createByteInt(0)
             header += b'\0' * 32
 
         header += createByteInt(offset)
         header += createByteInt(stripes)
         offset += keyMaterialSectors
 
-    header += b'\0' * (conf_payload_offset - len(header))
+        status = disabled
+
+    header = pad(header, conf_payload_offset)
 
     slot1 = getSlotKey(mk, stripes, iterations, salt, sector_size)
     header += slot1
@@ -149,7 +153,7 @@ def createHeader():
         header += b'\0' * sector_size * 4
 
     conf_filesize = pow(2, 24)
-    header += b'\0' * (conf_filesize - len(header))
+    header = pad(header, conf_filesize)
 
     return header
 
