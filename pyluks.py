@@ -33,19 +33,26 @@ def xorbytes(var, key):
 
 def hashval(val):
     width = 32
-    rounds = math.ceil((len(val)/width))
+    blocks = math.ceil((len(val)/width))
 
+    print("input data")
+    print(val.hex())
     result = bytes()
-    for i in range(rounds):
+    for i in range(blocks):
         data = val[i*width:(i+1)*width]
-        iterator = i.to_bytes(8, "little")
-        #data = iterator + data
+        iterator = i.to_bytes(4, "big")
     #    print(len(data))
-        hashedData = bytes.fromhex(hashlib.sha256(data).hexdigest())
-        #print(hashlib.sha256(data).digest_size)
+        h = hashlib.sha256()
+        h.update(iterator)
+        h.update(data)
+        hashedData = bytes.fromhex(h.hexdigest())
+
         hashedData = hashedData[0:len(data)]
         result += hashedData
 
+    print(result.hex())
+    import sys
+    #sys.exit(0)
     return result
 
 import random, math
@@ -53,13 +60,20 @@ import random, math
 def afSplitter(unsplitMaterial, stripes):
     length = len(unsplitMaterial)
 
-    d = b'\0' * length
+    d = bytes.fromhex("00") * length
     s = b''
 
     for stripe in range(stripes-1):
         s_k = b'\0' * length #random.randbytes(length)
+        s_k = bytes.fromhex("01") * length
+
+        print("data")
+        print(d.hex())
+        print(s_k.hex())
         d = xorbytes(d, s_k)
         d = hashval(d)
+        print(d.hex())
+        import sys
         assert len(d) == 64
         s += s_k
 
@@ -72,9 +86,15 @@ import os
 
 def getSlotKey(mk, stripes, iterations, salt):
     split = afSplitter(mk, stripes)
+    #print(len(split))
+    #print(len(split))
+    #print(len(split)/ 500)
+    import sys
     key = ""
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
-    iv = (8).to_bytes(8, 'little') + b'\0'* 8
+    #print("keyhash")
+    #print(keyhash.hex())
+    #sys.exit()
 
     #print(iv)
 
@@ -83,9 +103,14 @@ def getSlotKey(mk, stripes, iterations, salt):
     #print(len(mk))
     #print(len(mk))
     #print(blocks)
-    cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
-    encryptor = cipher.encryptor()
-    ct = encryptor.update(split) + encryptor.finalize()
+    ct = bytes()
+    for i in range(500):
+        src = split[i * 512: (i+1)*512]
+        iv = (i).to_bytes(16, 'little')
+        #print(iv)
+        cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
+        encryptor = cipher.encryptor()
+        ct += (encryptor.update(src) + encryptor.finalize())
     return ct
 
 def createHeader():
