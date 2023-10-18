@@ -70,7 +70,7 @@ def afSplitter(data, stripes):
 
     return s
 
-def getSlotKey(mk, stripes, iterations, salt):
+def getSlotKey(mk, stripes, iterations, salt, sector_size):
     split = afSplitter(mk, stripes)
     key = ""
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
@@ -78,7 +78,7 @@ def getSlotKey(mk, stripes, iterations, salt):
     blocks = len(split)
     ct = bytes()
     for i in range(500):
-        src = split[i * 512: (i+1)*512]
+        src = split[i * sector_size: (i+1)*sector_size]
         iv = i.to_bytes(16, 'little')
         cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
         encryptor = cipher.encryptor()
@@ -114,12 +114,12 @@ def createHeader():
     status = enabled
 
     size_of_phdr = 592
-    luks_sector_size = 512
+    sector_size = 512
 
-    #offset =  size_of_phdr // luks_sector_size + 1
+    #offset =  size_of_phdr // sector_size + 1
     offset = 8
     stripes = 4000
-    #keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
+    #keyMaterialSectors = (stripes * 64) // sector_size + 1
     keyMaterialSectors = 504
 
     for key_id in range(8):
@@ -140,13 +140,13 @@ def createHeader():
 
     header += b'\0' * (conf_payload_offset - len(header))
 
-    slot1 = getSlotKey(mk, stripes, iterations, salt)
+    slot1 = getSlotKey(mk, stripes, iterations, salt, sector_size)
     header += slot1
-    header += b'\0' * 512 * 4
+    header += b'\0' * sector_size * 4
 
     for id in range(1,8):
-        header += getRandom(512 * 500)
-        header += b'\0' * 512 * 4
+        header += getRandom(sector_size * 500)
+        header += b'\0' * sector_size * 4
 
     conf_filesize = pow(2, 24)
     header += b'\0' * (conf_filesize - len(header))
