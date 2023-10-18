@@ -53,20 +53,20 @@ def hashval(val):
 
 import random, math
 
-def afSplitter(unsplitMaterial, stripes):
-    length = len(unsplitMaterial)
+def afSplitter(data, stripes):
+    length = len(data)
 
     d = bytes.fromhex("00") * length
     s = b''
 
-    for stripe in range(stripes-1):
+    for i in range(stripes - 1):
         s_k = getRandom(length)
 
         d = xorbytes(d, s_k)
         d = hashval(d)
         s += s_k
 
-    s += xorbytes(d, unsplitMaterial)
+    s += xorbytes(d, data)
 
     return s
 
@@ -79,7 +79,7 @@ def getSlotKey(mk, stripes, iterations, salt):
     ct = bytes()
     for i in range(500):
         src = split[i * 512: (i+1)*512]
-        iv = (i).to_bytes(16, 'little')
+        iv = i.to_bytes(16, 'little')
         cipher = Cipher(algorithms.AES(keyhash), modes.XTS(iv))
         encryptor = cipher.encryptor()
         ct += (encryptor.update(src) + encryptor.finalize())
