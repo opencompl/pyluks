@@ -86,28 +86,27 @@ def getSlotKey(mk, stripes, iterations, salt):
     return ct
 
 def createHeader():
+    header = bytes()
+
     magic = b"LUKS" + bytes.fromhex("BABE")
     version = bytes.fromhex("0001")
+    header += magic + version
+
     chipher_name = createByteString("aes", 32)
     chipher_mode = createByteString("xts-plain64", 32)
     hash_spec = createByteString("sha256", 32)
-    payload_offset = createByteInt(4096)
+    header += chipher_name + chipher_mode + hash_spec
+
+    conf_payload_offset = 4096
+    payload_offset = createByteInt(conf_payload_offset)
+    header += payload_offset
+
     key_bytes = createByteInt(64)
     mk, mk_digest, mk_digest_salt, mk_iterations = getmasterkey()
     mk_digest_iter = createByteInt(mk_iterations)
-    uuid = createByteString(getUUID(), 40)
+    header += key_bytes + mk_digest + mk_digest_salt + mk_digest_iter
 
-    header = bytes()
-    header += magic
-    header += version
-    header += chipher_name
-    header += chipher_mode
-    header += hash_spec
-    header += payload_offset
-    header += key_bytes
-    header += mk_digest
-    header += mk_digest_salt
-    header += mk_digest_iter
+    uuid = createByteString(getUUID(), 40)
     header += uuid
 
     disabled = bytes.fromhex("0000DEAD")
@@ -123,27 +122,23 @@ def createHeader():
     #keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
     keyMaterialSectors = 504
 
-
     for key_id in range(8):
         iterations = 124680
         salt = getRandom(32)
         header += status
-        if status == disabled:
+        if status == enabled:
+            header += createByteInt(iterations)
+            header += salt
+            status = disabled
+        else:
             header += b'\0' * 4
             header += b'\0' * 32
-            header += createByteInt(offset)
-            header += createByteInt(stripes)
-            offset +=  keyMaterialSectors
-            continue
 
-        header += createByteInt(iterations)
-        header += salt
         header += createByteInt(offset)
         header += createByteInt(stripes)
-        status = disabled
-        offset +=  keyMaterialSectors
+        offset += keyMaterialSectors
 
-    header += b'\0' * (4096 - len(header))
+    header += b'\0' * (conf_payload_offset - len(header))
 
     slot1 = getSlotKey(mk, stripes, iterations, salt)
     header += slot1
@@ -153,7 +148,8 @@ def createHeader():
         header += getRandom(512 * 500)
         header += b'\0' * 512 * 4
 
-    header += b'\0' * (pow(2, 24) - len(header))
+    conf_filesize = pow(2, 24)
+    header += b'\0' * (conf_filesize - len(header))
 
     return header
 
@@ -168,4 +164,3 @@ header = createHeader()
 f = args.file
 f.write(header)
 f.close()
-
