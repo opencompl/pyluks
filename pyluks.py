@@ -167,7 +167,14 @@ def createHeader():
 
     slot1 = getSlotKey(mk, stripes, iterations, salt)
     header += slot1
-    header += b'\0' * (16777216 - len(header))
+    header += b'\0' * 512 * 4
+
+    for id in range(1,8):
+        header += b'\1' * 512 * 500
+        header += b'\0' * 512 * 4
+
+    header += b'\0' * (pow(2, 24) - len(header))
+
     return header
 
 parser = argparse.ArgumentParser(
