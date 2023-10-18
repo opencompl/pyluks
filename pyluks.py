@@ -97,7 +97,18 @@ def createHeader():
     mk_digest_iter = createByteInt(mk_iterations)
     uuid = createByteString(getUUID(), 40)
 
-    header = magic + version + chipher_name + chipher_mode + hash_spec + payload_offset + key_bytes + mk_digest + mk_digest_salt + mk_digest_iter + uuid
+    header = bytes()
+    header += magic
+    header += version
+    header += chipher_name
+    header += chipher_mode
+    header += hash_spec
+    header += payload_offset
+    header += key_bytes
+    header += mk_digest
+    header += mk_digest_salt
+    header += mk_digest_iter
+    header += uuid
 
     disabled = bytes.fromhex("0000DEAD")
     enabled = bytes.fromhex("00AC71F3")
