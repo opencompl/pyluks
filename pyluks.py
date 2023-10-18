@@ -112,16 +112,15 @@ def createHeader():
     size_of_phdr = 592
     luks_sector_size = 512
 
-    offset =  size_of_phdr // luks_sector_size + 1
-    #offset =  8
+    #offset =  size_of_phdr // luks_sector_size + 1
+    offset =  8
     stripes = 4000
-    #stripes = 1
-    keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
-    #keyMaterialSectors = 504
+    #keyMaterialSectors = (stripes * 64) // luks_sector_size + 1
+    keyMaterialSectors = 504
 
 
     for key_id in range(8):
-        iterations = 2056030
+        iterations = 124680
         salt = bytes.fromhex("0101010101010101010101010101010101010101010101010101010101010101")
         header += status
         if status == disabled:
