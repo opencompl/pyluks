@@ -2,7 +2,7 @@
 
 import argparse
 import hashlib
-import cryptography
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 def createByteString(string, length):
     result = string.encode('ascii')
@@ -70,21 +70,11 @@ def afSplitter(unsplitMaterial, stripes):
 
     return s
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-import os
-
 def getSlotKey(mk, stripes, iterations, salt):
     split = afSplitter(mk, stripes)
-    import sys
     key = ""
     keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
-    #print("keyhash")
-    #print(keyhash.hex())
-    #sys.exit()
 
-    #print(iv)
-
-   
     blocks = len(split)
     ct = bytes()
     for i in range(500):
