@@ -50,7 +50,7 @@ def hashval(val):
 
     return result
 
-import random, math
+import math
 
 def afSplitter(data, stripes):
     length = len(data)
