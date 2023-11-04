@@ -12,6 +12,6 @@ sudo /home/grosser/Projects/cryptsetup-2.6.1/cryptsetup luksFormat --type luks1 
 
 echo "PyLUKS"
 
-./pyluks.py pyluks.img
+./pyluks.py ext4.img pyluks.img
 
 

@@ -174,16 +174,17 @@ def createHeader(data):
 parser = argparse.ArgumentParser(
     prog = 'PyLuks',
     description = 'Create a Luks filesystem image from python')
-parser.add_argument('file', type = argparse.FileType('wb'))
+parser.add_argument('unencrypted_input_file_image', type = argparse.FileType('rb'))
+parser.add_argument('encrypted_output_file_image', type = argparse.FileType('wb'))
 
 args = parser.parse_args()
 
 
-ff = open("ext4.img", "rb")
+ff = args.unencrypted_input_file_image
 filebytes = bytearray(ff.read())
 
 
 header = createHeader(filebytes)
-f = args.file
+f = args.encrypted_output_file_image
 f.write(header)
 f.close()
