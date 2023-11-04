@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import hashlib
-import secrets
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import hashlib
+import math
+import secrets
 
 def pad(data, length):
     return data + b'\0' * (length - len(data))
@@ -49,8 +50,6 @@ def hashval(val):
         result += hashedData
 
     return result
-
-import math
 
 def afSplitter(data, stripes):
     length = len(data)
