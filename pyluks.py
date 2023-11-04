@@ -20,7 +20,7 @@ def getUUID():
     return "abcdabcd-abcd-abcd-abcd-abcdabcdabcd"
 
 def getRandom(length):
-    return bytes.fromhex("01") * length
+    return secrets.token_bytes(length)
 
 def getmasterkey():
     iterations = 1000
@@ -139,9 +139,12 @@ def createHeader(data):
     #keyMaterialSectors = (stripes * 64) // sector_size + 1
     keyMaterialSectors = 504
 
+    salts = []
+
     for key_id in range(8):
         iterations = 124680
         salt = getRandom(32)
+        salts.append(salt)
         header += status
         if status == enabled:
             header += createByteInt(iterations)
@@ -158,7 +161,7 @@ def createHeader(data):
 
     header = pad(header, conf_payload_offset)
 
-    slot1 = getSlotKey(mk, stripes, iterations, salt, sector_size)
+    slot1 = getSlotKey(mk, stripes, iterations, salts[0], sector_size)
     header += slot1
     header += b'\0' * sector_size * 4
 
