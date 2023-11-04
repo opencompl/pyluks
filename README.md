@@ -1,7 +1,12 @@
 # pyluks
 
-0x01000 - 0x20400 | 4096 - 132096 | 8 - 258 | 250
-0x21000 - 0x40400 | 135168 - 263168 | 264 - 514 | 250
-0x41000 - 0x60400 |
+A Python implementation of cryptsetup/luks that makes it possible to turn a
+unencrypted file system image into a luks-compatible encrypted filesytem image.
 
-0x61000 - 
+Warning: This tool has not been reviewed for security and might use unsafe defaults.
+
+```
+usage: PyLuks [-h] password unencrypted_input_file_image encrypted_output_file_image
+PyLuks: error: the following arguments are required: password, unencrypted_input_file_image, encrypted_output_file_image
+
+```
