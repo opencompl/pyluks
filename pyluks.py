@@ -68,10 +68,9 @@ def afSplitter(data, stripes):
 
     return s
 
-def getSlotKey(mk, stripes, iterations, salt, sector_size):
+def getSlotKey(mk, stripes, iterations, salt, sector_size, password):
     split = afSplitter(mk, stripes)
-    key = ""
-    keyhash = hashlib.pbkdf2_hmac("sha256", key.encode("utf-8"), salt, iterations, 64)
+    keyhash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations, 64)
 
     blocks = len(split)
     ct = bytes()
@@ -96,7 +95,7 @@ def encryptData(data, key):
 
     return ct
 
-def createHeader(data):
+def createHeader(data, password):
     header = bytes()
 
     magic = b"LUKS" + bytes.fromhex("BABE")
@@ -155,7 +154,7 @@ def createHeader(data):
 
     header = pad(header, conf_payload_offset)
 
-    slot1 = getSlotKey(mk, stripes, iterations, salts[0], sector_size)
+    slot1 = getSlotKey(mk, stripes, iterations, salts[0], sector_size, password)
     header += slot1
     header += b'\0' * sector_size * 4
 
@@ -174,6 +173,7 @@ def createHeader(data):
 parser = argparse.ArgumentParser(
     prog = 'PyLuks',
     description = 'Create a Luks filesystem image from python')
+parser.add_argument('password')
 parser.add_argument('unencrypted_input_file_image', type = argparse.FileType('rb'))
 parser.add_argument('encrypted_output_file_image', type = argparse.FileType('wb'))
 
@@ -184,7 +184,7 @@ ff = args.unencrypted_input_file_image
 filebytes = bytearray(ff.read())
 
 
-header = createHeader(filebytes)
+header = createHeader(filebytes, args.password)
 f = args.encrypted_output_file_image
 f.write(header)
 f.close()
