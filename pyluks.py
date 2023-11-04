@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import secrets
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 def pad(data, length):
@@ -25,7 +26,7 @@ def getmasterkey():
     iterations = 1000
     salt = getRandom(32)
     key = bytes.fromhex(
-            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
+            "01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
             "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
