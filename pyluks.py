@@ -25,12 +25,7 @@ def getRandom(length):
 def getmasterkey():
     iterations = 1000
     salt = getRandom(32)
-    key = bytes.fromhex(
-            "01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00"
-            )
+    key = getRandom(64)
     keyhash = hashlib.pbkdf2_hmac("sha256", key, salt, iterations, 20)
 
     return (key, keyhash, salt, iterations)
