@@ -88,7 +88,20 @@ def getSlotKey(mk, stripes, iterations, salt, sector_size):
         ct += (encryptor.update(src) + encryptor.finalize())
     return ct
 
-def createHeader():
+def encryptData(data, key):
+    sector_size = 512
+    blocks = math.ceil(len(data) / sector_size)
+    ct = bytes()
+    for i in range(blocks):
+        src = data[i * sector_size: (i+1)*sector_size]
+        iv = i.to_bytes(16, 'little')
+        cipher = Cipher(algorithms.AES(key), modes.XTS(iv))
+        encryptor = cipher.encryptor()
+        ct += (encryptor.update(src) + encryptor.finalize())
+
+    return ct
+
+def createHeader(data):
     header = bytes()
 
     magic = b"LUKS" + bytes.fromhex("BABE")
@@ -153,6 +166,9 @@ def createHeader():
         header += b'\0' * sector_size * 4
 
     conf_filesize = pow(2, 24)
+    header = pad(header, sector_size * 4096)
+    data = encryptData(data, mk)
+    header += data
     header = pad(header, conf_filesize)
 
     return header
@@ -164,7 +180,12 @@ parser.add_argument('file', type = argparse.FileType('wb'))
 
 args = parser.parse_args()
 
-header = createHeader()
+
+ff = open("ext4.img", "rb")
+filebytes = bytearray(ff.read())
+
+
+header = createHeader(filebytes)
 f = args.file
 f.write(header)
 f.close()
